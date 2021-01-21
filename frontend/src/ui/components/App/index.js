@@ -1,25 +1,22 @@
 import { useSelector } from 'react-redux';
-import { useNoSleep } from 'use-no-sleep';
 import { accessLastMessage } from '../../../model/packs/messages';
-import { useWsConnection } from '../../../logic/hooks';
-import viewTheme from './view.module.scss';
 import { accessCurrentColor } from '../../../model/packs/commands';
-import { useCallback, useState } from 'react';
+import { useWsConnection } from '../../../logic/hooks/wsConnection';
+import { useNoSleepDirect } from '../../../logic/hooks/noSleepRef';
+import viewTheme from './view.module.scss';
 
 function WsCommandNotifier() {
+  const [ noSleepEnabled, toggleNoSleepEnabled ] = useNoSleepDirect();
   const response = useSelector(accessLastMessage());
-  const [ noSleepEnabled, setNoSleepEnabled ] = useState(false);
 
-  const noSleepHanlder = useCallback(() => {
-    // https://richtr.github.io/NoSleep.js/example/
-    setNoSleepEnabled(!noSleepEnabled)
-  }, [ noSleepEnabled, setNoSleepEnabled ]);
-
-  useNoSleep(noSleepEnabled);
+  if (!response) {
+    return (<div>No response yet.</div>)
+  }
   return (<div>
-    It's <span>{ response }</span>
-    <br/>
-    <button onClick={ noSleepHanlder }>{ noSleepEnabled ? 'Disable No Sleep' : 'Enable No Sleep'}</button>
+    <div>{ response }</div>
+    <br />
+    <br />
+    <button onClick={ toggleNoSleepEnabled }>{ noSleepEnabled ? 'Disable No Sleep' : 'Enable No Sleep' }</button>
   </div>);
 }
 
@@ -39,7 +36,7 @@ export function App() {
   useWsConnection();
 
   const color = useSelector(accessCurrentColor());
-  console.log(color);
+  console.log({ color });
 
   return <View bgColor={ color || '#ffffff80' }>
     <WsCommandNotifier />

@@ -1,15 +1,19 @@
 import { useDispatch } from 'react-redux';
-import socketIOClient from 'socket.io-client';
 import { useEffect } from 'react';
-import { incomingMessageAction } from '../model/packs/messages';
+import socketIOClient from 'socket.io-client';
 import { defaultChannelName } from 'swarmies-lite-shared';
+import { safelyUnwrapJson } from '../utils/json';
+import { incomingMessageAction } from '../../model/packs/messages';
 
 const ENDPOINT = process.env.REACT_APP_WS_ENDPOINT;
 
 export const useWsConnection = () => {
   const dispatch = useDispatch();
   useEffect(() => {
-    const socket = socketIOClient(ENDPOINT);
+    const socket = socketIOClient(ENDPOINT, {
+      // TODO: provide options to reconnect!
+    });
+
     socket.on(defaultChannelName, data => {
       const [ err, command ] = safelyUnwrapJson(data);
       if (err) {
@@ -20,8 +24,3 @@ export const useWsConnection = () => {
     return () => socket.disconnect();
   }, [ dispatch ]);
 };
-
-
-function safelyUnwrapJson(json) {
-  try { return [ null, JSON.parse(json) ];} catch (ex) { return [ ex ]; }
-}

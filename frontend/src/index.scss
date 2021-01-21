@@ -10,5 +10,10 @@ body {
 html, body, #root {
   height: 100vh;
   max-height: 100vh;
-  overflow-y: hidden;
+  width: 100vw;
+  max-width: 100vw;
+  overflow: hidden;
+  background-color: #fff;
+  position: relative;
+  touch-action: manipulation;
 }
