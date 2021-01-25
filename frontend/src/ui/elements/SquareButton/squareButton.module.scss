@@ -1,0 +1,36 @@
+@import "~bootstrap/scss/bootstrap-reboot";
+@import "~bootstrap/scss/buttons";
+
+
+$square-button-size: 3rem;
+
+:root {
+  --square-button-size: #{ $square-button-size };
+}
+
+.squareButton {
+  @extend .btn;
+  @extend .btn-outline-secondary;
+  position: relative;
+  width: var(--square-button-size);
+  height: var(--square-button-size);
+  padding: calc(var(--square-button-size) / 16);
+  display: block;
+
+  & > svg {
+    width: calc(var(--square-button-size) * (6 / 8)); // 1.75rem;
+    height: calc(var(--square-button-size) * (6 / 8));
+  }
+}
+
+.topLeft {
+  position: fixed;
+  top: .25rem;
+  left: .25rem;
+}
+
+.bottomRight {
+  position: fixed;
+  right: .25rem;
+  bottom: .25rem;
+}

@@ -7,8 +7,8 @@ import reportWebVitals from './reportWebVitals';
 import { App } from './ui/components/App';
 import './index.scss';
 
-const store = configureStore();
 
+const store = configureStore();
 
 const renderApp = () => ReactDOM.render(
   <Provider store={ store }>

@@ -1,0 +1,21 @@
+
+.view {
+  height: 100%;
+  width: 100%;
+  padding: .5rem .75rem;
+  position: relative;
+}
+
+.viewSquare {
+  --square-view-dimensions: calc(min(100vh, 100vw) - 2rem);
+  width: var(--square-view-dimensions);
+  height: var(--square-view-dimensions);
+  margin: 1rem auto;
+  padding: .75rem;
+}
+
+.toggleButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
