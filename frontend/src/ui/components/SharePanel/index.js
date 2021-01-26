@@ -11,6 +11,8 @@ export const SharePanel = () => {
   const dispatch = useDispatch();
   const handleDismissPanel = useMemo(() => () => dispatch(uiCommandDismiss('qr')), [ dispatch ]);
 
+  const sharedLink = useMemo(() => window.location.href, []);
+
   return <If condition={ qrPanelShown }>
     <View square toggle={ handleDismissPanel }>
       <div className={ theme.qrContainer }>
@@ -19,10 +21,10 @@ export const SharePanel = () => {
           fgColor="#000000"
           level="Q"
           style={ {} }
-          value={ process.env.REACT_APP_SITE_URL }
+          value={ sharedLink }
         />
       </div>
-      <div><a href={ process.env.REACT_APP_SITE_URL }>{ process.env.REACT_APP_SITE_URL }</a></div>
+      <div><a href={ sharedLink }>{ sharedLink }</a></div>
     </View>
   </If>;
 };

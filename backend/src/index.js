@@ -1,5 +1,6 @@
 import express from 'express';
 import * as io from 'socket.io';
+import path from 'path';
 import http from 'http';
 import bodyParser from 'body-parser';
 import { routes } from './routes/index.js';
@@ -10,6 +11,7 @@ const app = express();
 //app.use(cors({ preflightContinue: true, origin: '*' }));
 app.use(bodyParser.json());
 app.use(routes);
+app.use(express.static(path.join(__dirname, '..', 'build')));
 
 const server = http.createServer(app);
 

@@ -3,44 +3,77 @@ import { EventEmitter } from 'events';
 import colorParse from 'color-parse';
 import { hsl, rgb } from 'color-convert';
 
-const emitterRef = {
-  current: null
-};
 
-const lastMessageListener = message => emitterRef.lastMessage = message;
-const subscribeToSwarm = (worker, socket) => {
-  if (!emitterRef.current) {
-    emitterRef.current = new EventEmitter();
-    emitterRef.unsubAll = worker(emitterRef.current);
-    emitterRef.current.on('message', lastMessageListener);
+const createLastMessageListener = store => message => store.lastMessage = message;
+
+class CommandsCoordinator {
+  constructor(commandsGenFunction) {
+    console.log('CommandsCoordinator.ctor');
+    this.commandsGenFn = commandsGenFunction;
   }
-  const emitter = emitterRef.current;
-  emitterRef.lastMessage && socket.emit(defaultChannelName, makeResponse(emitterRef.lastMessage));
-  const handler = message => socket.emit(defaultChannelName, makeResponse(message));
-  emitter.on('message', handler);
-  return () => {
-    emitter.off('message', handler);
-    if (emitter.listenerCount('message') === 1) {
-      emitter.off('message', lastMessageListener);
-      emitter.current = null;
-      emitterRef.unsubAll && emitterRef.unsubAll();
-      delete emitterRef.unsubAll;
-      delete emitterRef.lastMessage;
-    }
-  };
-};
 
-function makeWorker(fn) {
-  return function intervalWorker(emitter) {
-    console.log('Started worker');
-    let interval = setInterval(() => {
-      emitter.emit('message', fn());
-    }, 1000);
-    return () => {
-      interval && clearInterval(interval);
-      interval = null;
+  start() {
+    console.log('CommandsCoordinator.start', !!this);
+    if (!this.isStopped) {
+      return;
+    }
+    const emitter = new EventEmitter();
+    this.lastMessageHandler = createLastMessageListener(this);
+    emitter.on('message', this.lastMessageHandler);
+    this.cleanupEmitter = () => emitter.off('message', this.lastMessageHandler);
+    this.isCurrentEmitterEmpty = () => emitter.listenerCount('message') === 1;
+    this.emitter = emitter;
+
+    const makeIntervalHandler = (emitter, commandsGenFn) => () => {
+      const payload = makeResponse(commandsGenFn());
+      console.log('Emitting message', JSON.stringify(payload), !!emitter);
+      emitter.emit('message', commandsGenFn());
     };
-  };
+
+    this.interval = setInterval(makeIntervalHandler(emitter, this.commandsGenFn), 1000);
+  }
+
+  tryAndDispose() {
+    if (this.isCurrentEmitterEmpty && this.isCurrentEmitterEmpty()) {
+      this.stop();
+    }
+  }
+
+  stop() {
+    this.cleanupEmitter && this.cleanupEmitter();
+    delete this.cleanupEmitter;
+    delete this.lastMessageHandler;
+    delete this.emitter;
+
+    if (this.interval) {
+      clearInterval(this.interval);
+      delete this.interval;
+    }
+  }
+
+  get isStopped() {
+    console.log('isStopped');
+    return !this.interval;
+  }
+
+  subscribeSocket(socketAsEmitter) {
+    console.log('subscribeSocket', this, this.interval);
+
+    // subscribe socket to on message
+    // emit last command
+    const handler = message => socketAsEmitter.emit(defaultChannelName, makeResponse(message));
+    if (this.lastMessage) {
+      handler(this.lastMessage);
+    }
+    this.emitter && this.emitter.on('message', handler);
+
+    const coordinator = this;
+    return function unsubscribeSocket() {
+      console.log('Unsubscribe', coordinator, coordinator.interval);
+      socketAsEmitter.off('message', handler);
+      coordinator.tryAndDispose();
+    };
+  }
 }
 
 
@@ -51,16 +84,25 @@ const makeSeriesColorTransCommandIter = makeSeriesOfColorTransitionCommands(make
   '#ff000080', '#00ff0080', '#0000ff80'
 ], colorTransitionWithStops(64));
 
-const makeSeriesColorCommand = () => makeSeriesColorTransCommandIter.next().value;
+const makeSeriesColorCommand = () => {
+  console.log('makeSeriesColorCommand..next()');
+  return makeSeriesColorTransCommandIter.next().value;
+};
 
-const worker = makeWorker(makeSeriesColorCommand);
+const coordinator = {
+  current: new CommandsCoordinator(makeSeriesColorCommand)
+};
 
 export const socketsOnConnectionHandler = socket => {
   console.log('New client connected', new Date());
-  const unsub = subscribeToSwarm(worker, socket);
+  if (coordinator.current.isStopped) {
+    coordinator.current.start();
+  }
+  const unsubscribeSocket = coordinator.current.subscribeSocket(socket);
+
   socket.on('disconnect', () => {
     console.log('Client disconnected', new Date());
-    unsub && unsub();
+    unsubscribeSocket();
   });
 };
 
@@ -71,7 +113,7 @@ function makeResponse(payload) {
 /////////
 
 function makeStaticColorCommand(hint = '#ffffff80') {
-  //  console.log('Producing color: ' + hint);
+    console.log('makeStaticColorCommand color: ' + hint);
   return { command: 'COLOR', arg: hint };
 }
 
@@ -118,13 +160,13 @@ function colorTransitionWithStops(stops) {
     const fromHue = hslaStart[ 0 ];
     const toHue = hslaEnd[ 0 ];
 
-    const [ fromHValue, toHValue ] = (fromHue < toHue ) ? (
+    const [ fromHValue, toHValue ] = (fromHue < toHue) ? (
       dist(fromHue, toHue) < dist(fromHue + 360, toHue) ? [ fromHue, toHue ] : [ fromHue + 360, toHue ]
     ) : (
       dist(fromHue, toHue + 360) < dist(fromHue + 360, toHue + 360 * 2) ? [ fromHue, toHue + 360 ] : [ fromHue + 360, toHue + 360 * 2 ]
     );
 
-    console.log(`Transition hue from ${ fromHValue} to ${ toHValue } (${ start } -> ${ end }). Route: ${ fromHValue} to ${ toHValue }`);
+    console.log(`Transition hue from ${ fromHValue } to ${ toHValue } (${ start } -> ${ end }). Route: ${ fromHValue } to ${ toHValue }`);
 
     for (let i = 0, iMax = stops + 1; i < iMax; i++) {
       let hsla = [

@@ -5,12 +5,12 @@ import { defaultChannelName } from 'swarmies-lite-shared';
 import { safelyUnwrapJson } from '../utils/json';
 import { incomingMessageAction } from '../../model/packs/messages';
 
-const ENDPOINT = process.env.REACT_APP_WS_ENDPOINT;
+const ENDPOINT = ''; //process.env.REACT_APP_WS_ENDPOINT;
 
 export const useWsConnection = () => {
   const dispatch = useDispatch();
   useEffect(() => {
-    const socket = socketIOClient(ENDPOINT, {
+    const socket = socketIOClient(ENDPOINT || window.location.origin, {
       // TODO: provide options to reconnect!
     });
 
